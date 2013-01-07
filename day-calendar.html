@@ -1,0 +1,360 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+<meta charset="UTF-8">
+<title>Day Events</title>
+<style>
+body{ 
+	font: normal 11px Verdana;
+}
+p {
+	font: bold 14px Verdana;
+	margin-bottom: 20px 0;
+}
+.evt-txt {
+	color: #4B6EA8;
+	font-weight: bold;
+}
+.day-event-container {
+	position: relative;
+	float: left;
+	height: 720px;
+	width: 620px;
+	background-color: #ECECEC;
+}
+.day-event {
+	border: 1px solid #D5D5D5;
+	position: absolute;
+	background-color: white;
+	border-left: 4px solid #4B6EA8;
+	-webkit-box-sizing: border-box; /* Safari, Chrome, other WebKit */
+	-moz-box-sizing: border-box;    /* Firefox */
+	box-sizing: border-box;         /* Opera, IE 8+ */
+	padding: 5px;
+}
+ol {
+	float: left;
+	list-style: none;
+	text-align: right;
+	padding: 0;
+	margin: -8px 5px 0 0;
+	color: #666;
+}
+li {
+	height: 30px;
+}
+span.hour {
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+</body>
+<p>Day Events Ver 2.0</p>
+<ol>
+	<li><span class="hour">9:00</span> AM</li>
+	<li>9:30</li>
+	<li><span class="hour">10:00 AM</li>
+	<li>10:30</li>
+	<li><span class="hour">11:00</span> AM</li>
+	<li>11:30</li>
+	<li><span class="hour">12:00</span> PM</li>
+	<li>12:30</li>
+	<li><span class="hour">01:00</span> PM</li>
+	<li>01:30</li>
+	<li><span class="hour">02:00</span> PM</li>
+	<li>02:30</li>
+	<li><span class="hour">03:00</span> PM</li>
+	<li>03:30</li>
+	<li><span class="hour">04:00</span> PM</li>
+	<li>04:30</li>
+	<li><span class="hour">05:00</span> PM</li>
+	<li>05:30</li>
+	<li><span class="hour">06:00</span> PM</li>
+	<li>06:30</li>
+	<li><span class="hour">07:00</span> PM</li>
+	<li>07:30</li>
+	<li><span class="hour">08:00</span> PM</li>
+	<li>08:30</li>
+	<li><span class="hour">09:00</span> PM</li>
+</ol>
+<div id="day-event-container" class="day-event-container"></div>
+
+<script>
+
+/****************************************************************
+
+*** PSEUDO CODE ***
+*** Author: Chandra Sekhar Veera ***
+
+1. Sort the given array based on the start property.
+2. Initialize the current column array and pivot.
+3. Generate day events (column-wise), wherein no two events within a column will collide
+	3.1. Initialize the pivot with first event in the given array
+	3.2. Set pivot properties top, left, height and width of the pivot based on the column being rendered.
+	3.3. Push the pivot to the current column array
+	3.4. Compare pivot with each event in the given array to determine collisions 
+			until the end of given array is reached and re-initialize the pivot each time an event 
+			does not collide with the pivot. Set the pivot properties and update the current column array
+	3.5. Save the current column in the (two-dimensional) result array
+	3.6. Re-initialize the current column array, startWhereLeftOff, once it's saved in result array
+	3.7. Generate columns until there are no more events in the given array (i.e. repeat steps 3.1 - 3.6)
+4. Adjust the width of all events by iterating the result array by comparing events from 0th column to (n+1)th column and so on till the last column
+	and then comparing events from nth column to (n-1)th column till the 0th column
+5. Render the events. 
+
+*****************************************************************/
+
+//	Avoid polluting the global namespace
+(function() {
+
+// Namespacing Facebook Widgets (Pattern: nested-object)
+
+var FB = FB || {};
+FB.Widgets = FB.Widgets || {};
+FB.Widgets.DayCalender = FB.Widgets.DayCalender || {
+	givenArr: 	//	Input for Day Calendar
+	/*
+	//	TEST CASE 0:
+	[
+		{id : 1, start : 60, end : 120},{id : 2, start : 100, end : 240},{id : 3, start : 700, end : 720}
+	],
+	*/
+	
+	//	TEST CASE 1:
+	[
+		{id : 1, start : 0, end : 30},{id : 2, start : 30, end : 100},{id : 3, start : 80, end : 160},{id : 4, start : 110, end : 240},
+		{id : 5, start : 110, end : 180},{id : 6, start : 170, end : 230},{id : 7, start : 170, end : 240},{id : 8, start : 170, end : 220},
+		{id : 9, start : 190, end : 260},{id : 10, start : 230, end : 300},{id : 11, start : 240, end : 280},{id : 12, start : 250, end : 290},
+		{id : 13, start : 300, end : 330},{id : 14, start : 330, end : 400},{id : 15, start : 330, end : 390},{id : 16, start : 330, end : 380},
+		{id : 17, start : 400, end : 500}, {id : 18, start : 400, end : 620},{id : 19, start : 600, end : 650},{id: 20, start: 660, end: 720}, 
+		{id: 21, start: 670, end: 720}, {id: 22, start: 680, end: 720}, {id:23, start: 690, end: 720}, {id:24, start: 650, end: 680}, {id:25, start: 650, end: 690}   
+	],
+	
+	/*
+	//	TEST CASE 2: (has events outside calendar boundaries)
+	[
+		{id : 1, start : 30, end : 100},{id : 2, start : 110, end : 240},{id : 3, start : 250, end : 290},{id : 4, start : 80, end : 170},
+		{id : 5, start : 240, end : 280},{id : 6, start : 80, end : 160},{id : 7, start : 170, end : 230, start : 720, end : 900}
+	],
+	*/
+	/*
+	//	TEST CASE 4:
+	[
+		{id : 1, start : 0, end : 40},{id : 2, start : 40, end : 80},{id : 3, start : 80, end : 120},{id : 4, start : 120, end : 160}
+	],
+	*/
+	
+	resultArr: [],				//	holds event objects of the resultant array
+	startWhereLeftOff: 0,		// 	counter that helps determine end of array is reached
+	//	2. Initialize the current column array and pivot.
+	currColArr: [],				//	temporarily holds event objects being generated for the current column
+	pivot: null,				//	event whose properties are being determined to identify the collisions
+	CONTAINER_WIDTH: 600,		//	actual width of event container (excludes 10px padding on either side)
+	atLeastOneCollision: false,	//	used to continue till the end of an array when generating columns	
+
+	initialize: function(){
+		//	1.	Sort the given array based on the start, end indexes
+		this.givenArr.sort(function (a,b) {
+		    if (a["start"] > b["start"]) return  1;
+		    if (a["start"] < b["start"]) return -1;
+		    if (a["end"] > b["end"]) return  1;
+		    if (a["end"] < b["end"]) return -1;
+		    return 0;
+		});
+		//	3. 	Generate day events (column-wise)
+		 this.generateDayEvents();
+		//	4. 	Adjust the width of all events by iterating the result array by comparing events from nth column 
+		//		to (n+1)th column till the last column and then comparing events from nth column to (n-1)th column till 0th column
+		this.adjustWidth('last', 2);
+		// 	5.	Render the result array
+		this.renderEvents();	//	Solution to problem 2
+	},
+	generateDayEvents: function(){
+		do {
+			//	3.1. 	Initialize the pivot with first event in the given array
+			this.pivot = this.givenArr.shift();
+
+			//	3.2. 	Set pivot properties top, left, height and width of the pivot based on the column being rendered.
+			this._setPivotProperties(this.pivot);
+			// 	console.dir(pivot);
+			
+			//	3.3. 	Push the pivot to the current column array
+			this.currColArr.push(this.pivot);
+
+			// 	3.4.	Compare pivot with each event in the given array to determine collisions 
+			//			until the end of given array is reached and re-initialize the pivot each time an event 
+			//			does not collide with the pivot. Set the pivot properties and update the current column array
+			if(this.givenArr.length>0) this._generateColumnEvents();
+
+			//	3.5.	Save the current column in the (two-dimensional) result array
+			this.resultArr.push(this.currColArr);
+
+			// 	3.6. 	Re-initialize the current column array, startWhereLeftOff, once it's saved in result array
+			this.currColArr = [];
+			this.startWhereLeftOff = 0;
+
+			// Result array with events and their properties (top, left, width, height) generated
+			console.dir(this.resultArr);	//	Solution to problem 1
+			// 3.7.		Generate columns until there are no more events in the given array
+		} while(this.givenArr.length);	// givenArr gets reduced with shift and splice
+
+	},
+
+	// 	helper function that generates current column events
+	_generateColumnEvents: function(){
+		do {
+			//	event that didn't collide with pivot becomes the new pivot
+			var newPivot = this._determineCollisions();
+			// if new pivot is returned
+			if(newPivot){
+				// 	If there is no collision with the pivot, re-initilize the pivot with this event, determine it's top, 
+				//	left, height and width based on the column, remove the event object from the given array, 
+				//	and update the current column
+				
+				//	Re-initialize the pivot
+				this.pivot = newPivot.evt;
+				//	index to start comparing the new pivot with the rest of the items in the given array
+				this.startWhereLeftOff = newPivot.evtIndex;	
+				// splice the event from the given array that doesn't collide with the pivot
+				if( this.givenArr.splice(newPivot.evtIndex, 1) ) this.startWhereLeftOff--;
+				if(this.startWhereLeftOff<0) this.startWhereLeftOff = 0;
+				// determine the top, left, height and width of the new pivot 
+				this._setPivotProperties(this.pivot);
+				// push the pivot to previous col array and resulting array
+				this.currColArr.push(this.pivot);
+			}
+			var condition = (this.atLeastOneCollision)? (this.startWhereLeftOff<this.givenArr.length-1) : (this.startWhereLeftOff<this.givenArr.length);
+			// repeat until end of given array is reached. 
+		} while(condition);
+	}, 
+
+	//	helper function that helps determine events within the same column that do not collide
+	//	Iterates given array and returns an event that doesn't collide with the pivot
+	_determineCollisions: function(){
+		// Start the array search where left off
+		for(var i=this.startWhereLeftOff; i<this.givenArr.length; i++) {
+			if ( this._noCollision(this.pivot, this.givenArr[i]) ){
+				// console.log("Event " + i + " didn't collide: ")
+				// console.dir(this.givenArr[i]);
+				return {
+				// return the event that doesn't collide, also the index to remove it from the given array
+					evt: this.givenArr[i],
+					evtIndex: i
+				}	
+			} else {
+				// console.log("Event " + i + " collided: ")
+				// console.dir(this.givenArr[i]);
+				this.atLeastOneCollision = true;
+				this.startWhereLeftOff = i;
+			}
+		}
+	},
+
+	//	helper function that returns true if a collision doesn't exist between the pivot and an event
+	_noCollision: function(pivot, evt){
+		return (evt["start"] >= this.pivot.end)? true : false;
+	},
+
+	// helper function that sets pivot's properties - top, left, width, height
+	_setPivotProperties: function(pivot){
+		//	left and width properties will change (for current/previous column events) based on the column being rendered and collision
+		pivot.top = pivot.start;
+		pivot.height = pivot.end - pivot.start;
+		// width is affected by the column being rendered & collision
+		pivot.width = (!this.resultArr.length)? this.CONTAINER_WIDTH : Math.floor( this.CONTAINER_WIDTH/(this.resultArr.length+1) ); // Math.floor(600/2), Math.floor(600/3),.. 
+		// left property is affected by the column being rendered
+		pivot.left = (pivot.width * this.resultArr.length) + 10; // add 10px for left padding inside the container
+	},
+
+	//	4. Adjust the width of all events by iterating the result array
+	adjustWidth: function(order, times){
+		// adjust width and left pos from first column/last column
+		do {
+			if(order === 'last') {
+				console.log('***** Iterating from last column (nth) till the first (0th) column *****');
+				// Iterate through last column events and compare their collisions with events from previous column until we reach 0th column
+				for( var colIndex = this.resultArr.length-1; colIndex > 0; colIndex-- ) { // result array column iteration
+					var comparatorColIndex = colIndex-1;
+					console.info("Comparing column " + colIndex + " with column " + comparatorColIndex);
+					// Iterate through comparator array
+					// Get the length of each columns
+					// console.log("Length of nth column: " + this.resultArr[colIndex].length);
+					// console.log("Length of (n-1)th column: " + this.resultArr[comparatorColIndex].length);
+					this._columnIterator(colIndex, comparatorColIndex);
+				}
+				order = 'first';
+			} else {
+				console.log('***** Iterating from first column (0th) till the last (nth) column *****');
+				// Iterate through first column events and compare their collisions with events from adjacent column until we reach nth column
+				for(var colIndex=0; colIndex<this.resultArr.length-1; colIndex++) { // result array column iteration
+					var comparatorColIndex = colIndex+1;
+					console.info("Comparing column " + colIndex + " with column " + comparatorColIndex);
+					this._columnIterator(colIndex, comparatorColIndex);	
+				}
+				order = 'last';
+			}
+			times--;
+		} while(times > 0);
+	},
+	//	helper function that determines collisions between events from adjacent columns
+	_columnIterator: function(colIndex, comparatorColIndex){
+		// Iterate through comparator array
+		for(var i=0; i<this.resultArr[colIndex].length; i++){  // nth column iteration
+			for(var j=0; j<this.resultArr[comparatorColIndex].length; j++){	//	(n-1)/(n+1)th column
+				console.log("Comparing event " + this.resultArr[colIndex][i]["id"] + " with event " + this.resultArr[comparatorColIndex][j]["id"]);
+				// collision conditions for events from adjacent columns
+				var condition1 = condition2 = condition3 = false;
+				//	An event from an ajacent column is supposed to collide with the current event if the following conditions are met
+				//	condition 1 - event that starts earlier and ends within the current event
+				//	condition 2 - event that falls within or same as the current event
+				//	condition 3 - event that starts later while within the current event and ends after the current event
+				condition1 = ( (this.resultArr[colIndex][i]["start"] > this.resultArr[comparatorColIndex][j]["start"]) && (this.resultArr[colIndex][i]["start"] < this.resultArr[comparatorColIndex][j]["end"]) );
+				condition2 = ( ( (this.resultArr[colIndex][i]["start"] >= this.resultArr[comparatorColIndex][j]["start"]) && (this.resultArr[colIndex][i]["end"] <= this.resultArr[comparatorColIndex][j]["end"]) ) || ( (this.resultArr[colIndex][i]["start"] <= this.resultArr[comparatorColIndex][j]["start"]) && (this.resultArr[colIndex][i]["end"] >= this.resultArr[comparatorColIndex][j]["end"]) ) );
+				condition3 = ( (this.resultArr[colIndex][i]["end"] > this.resultArr[comparatorColIndex][j]["start"]) && (this.resultArr[colIndex][i]["end"] < this.resultArr[comparatorColIndex][j]["end"]) );
+				if(condition1 || condition2 || condition3) {
+					console.log("Column " + this.resultArr[colIndex][i]["id"] + " collides with " + this.resultArr[comparatorColIndex][j]["id"]);
+					console.log("Adjusting the width of " + this.resultArr[comparatorColIndex][j]["id"] + " to " + this.resultArr[colIndex][i]["width"]);
+					if(this.resultArr[colIndex][i]["width"] > this.resultArr[comparatorColIndex][j]["width"]) {
+						this.resultArr[colIndex][i]["width"] =  this.resultArr[comparatorColIndex][j]["width"];
+					}
+					if(this.resultArr[colIndex][i]["width"] < this.resultArr[comparatorColIndex][j]["width"]) {
+						this.resultArr[comparatorColIndex][j]["width"] = this.resultArr[colIndex][i]["width"];
+					}
+					this.resultArr[comparatorColIndex][j]["left"] = (this.resultArr[comparatorColIndex][j]["width"] * comparatorColIndex) + 10;
+					console.log("Adjusted the leftpos of " + this.resultArr[comparatorColIndex][j]["id"] + " to " + this.resultArr[comparatorColIndex][j]["left"]);
+				}
+			}
+		}
+	},
+
+	//	5. Render the events.
+	renderEvents: function(){
+		var evtHTML = "";
+		//	Iterate through the result array that has events whose top, left height and width properties set
+		for(var i=0; i<this.resultArr.length; i++) {
+			for(var j=0; j<this.resultArr[i].length; j++){
+				// Do not render events that don't fall within the boundaries of the calender
+				if(this.resultArr[i][j]["start"]<720 && this.resultArr[i][j]["start"]>=0){
+					// Generate the string that'll be part of the DOM
+					evtHTML += '<div class="day-event" id="' + this.resultArr[i][j]["id"] 
+								+ '" style="top:' + this.resultArr[i][j]["top"] 
+										+ 'px; left:' + this.resultArr[i][j]["left"] 
+										+ 'px; width:' + this.resultArr[i][j]["width"] 
+										+ 'px; height:' + this.resultArr[i][j]["height"] 
+										+ 'px"><span class="evt-txt">Event ID:</span> ' + this.resultArr[i][j]["id"] + '<br><span class="evt-txt">Interval:</span> ' + this.resultArr[i][j]["start"] + ',' + this.resultArr[i][j]["end"] + '</div>';
+				}					
+			}
+		}
+		// Render the DOM for the events
+		document.getElementById('day-event-container').innerHTML = evtHTML;	
+	}
+};
+
+// Kickoff the Facebook day calender
+FB.Widgets.DayCalender.initialize();
+
+})();
+
+</script>
+</html>
