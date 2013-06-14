@@ -1,6 +1,7 @@
 Facebook-Coding-Challenge
 =========================
 
+This is my own implementation of Facebook coding challenge written in vanilla JavaScript.
 
 Part I: Write a function (either PHP or JS) to lay out a series of events on the calendar for a single day.
  
