@@ -108,11 +108,11 @@ span.hour {
 //	Avoid polluting the global namespace
 (function() {
 
-// Namespacing Facebook Widgets (Pattern: nested-object)
+// Namespacing Widgets (Pattern: nested-object)
 
-var FB = FB || {};
-FB.Widgets = FB.Widgets || {};
-FB.Widgets.DayCalender = FB.Widgets.DayCalender || {
+var CV = CV || {};
+CV.Widgets = CV.Widgets || {};
+CV.Widgets.DayCalender = CV.Widgets.DayCalender || {
 	givenArr: 	//	Input for Day Calendar
 	/*
 	//	TEST CASE 0:
@@ -351,8 +351,8 @@ FB.Widgets.DayCalender = FB.Widgets.DayCalender || {
 	}
 };
 
-// Kickoff the Facebook day calender
-FB.Widgets.DayCalender.initialize();
+// Kickoff the day events calendar
+CV.Widgets.DayCalender.initialize();
 
 })();
 
