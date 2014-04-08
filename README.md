@@ -1,7 +1,7 @@
-Facebook-Coding-Challenge
+Day-Calendar-Coding-Challenge
 =========================
 
-This is my own implementation of Facebook coding challenge written in vanilla JavaScript.
+This is my own implementation of day calendar written in vanilla JavaScript.
 
 Part I: Write a function (either PHP or JS) to lay out a series of events on the calendar for a single day.
  
@@ -49,6 +49,5 @@ An event that starts at 7:10pm pm and ends at 8:10pm
 1. Are frameworks such as JQuery, MooTools, etc. allowed?  Yes, but please include the file with your source code.
 2. What PHP version can be used? Anything under 5.2.5
 3. Is there a maximum bound on the number of events?  You can assume a maximum of 100 events for rendering reasons, but your solution should be generalized.
-4.
-What browsers need to be supported? Your solution should work on all modern standards-compliant browsers.
-5.     Does my solution need to match the image pixel for pixel? No, we will not be testing for pixel matching.
+4. What browsers need to be supported? Your solution should work on all modern standards-compliant browsers.
+5. Does my solution need to match the image pixel for pixel? No, we will not be testing for pixel matching.
