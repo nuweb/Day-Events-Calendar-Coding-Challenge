@@ -1,7 +1,7 @@
-Day-Calendar-Coding-Challenge
-=========================
+Day-Events-Calendar-Coding-Challenge
+====================================
 
-This is my own implementation of day calendar written in vanilla JavaScript.
+This is my own implementation of day events calendar written in vanilla JavaScript.
 
 Part I: Write a function (either PHP or JS) to lay out a series of events on the calendar for a single day.
  
